@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Effeuiller l'amour de ma Pilpoule</title>
+    <style>
+        body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin-top: 40px;
+    overflow: hidden; /* Empêche la barre de défilement */
+}
+        h1 { margin-bottom: 60px; }
+        #daisy {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            margin: 60px auto 60px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+        .petal {
+            position: absolute;
+            left: 50%; top: 50%;
+            width: 120px; height: 40px;
+            background: linear-gradient(90deg, #fffbe6 60%, #ffe 100%);
+            border: 1.5px solid #e6d8a8;
+            border-radius: 100% 0 100% 0 / 100% 0 100% 0;
+            margin-left: 0; margin-top: -20px;
+            cursor: pointer; display: flex; align-items: center; justify-content: flex-start;
+            font-size: 1.05em; font-weight: bold; color: #b89c3a;
+            box-shadow: 0 2px 8px #e6e6b8;
+            transition: opacity 0.3s, transform 0.3s, box-shadow 0.2s;
+            transform-origin: 0 20px;
+            user-select: none;
+            writing-mode: vertical-lr;
+            text-orientation: mixed;
+            letter-spacing: 0.05em;
+            padding-left: 18px;
+            white-space: pre-line;
+            background-clip: padding-box;
+        }
+        .petal:hover:not(.removed) {
+            box-shadow: 0 4px 16px #ffe066;
+            background: linear-gradient(90deg, #fffbe6 80%, #fff9c4 100%);
+            color: #a88c1a;
+        }
+        .petal.removed { opacity: 0.25; pointer-events: none; color: #bdbdbd; }
+        #center {
+            position: absolute;
+            left: 50%; top: 50%;
+            width: 80px; height: 80px;
+            background: radial-gradient(circle at 60% 40%, #ffe066 60%, gold 100%);
+            border-radius: 50%;
+            margin-left: -40px; margin-top: -40px;
+            z-index: 2;
+            box-shadow: 0 0 18px #e6c200;
+            border: 2px solid #e6c200;
+        }
+            /* Remplace la règle .petal.falling et @keyframes petalFallScreen par : */
+            .petal.falling {
+                z-index: 10;
+                animation: petalFallScreen 1.8s cubic-bezier(.44,.99,.62,1.01) forwards;
+                opacity: 0.7 !important;
+            }
+
+            @keyframes petalFallScreen {
+                0% {
+                    opacity: 1;
+                    filter: none;
+                    /* Position initiale de la pétale */
+                    transform: var(--petal-rotate) translateY(-120px);
+                }
+                100% {
+                    opacity: 0;
+                    filter: blur(2px);
+                    /* Tombe tout droit vers le bas de l'écran, sans suivre l'axe de la pétale */
+                    transform: rotate(0deg) translate(-50%, calc(100vh - 120px));
+                }
+            }
+        /* Tige verte améliorée, plus longue, reliée au coeur et SOUS le résultat */
+        #stem {
+            position: absolute;
+            left: 50%;
+            top: calc(50% + 40px); /* commence juste sous le centre du coeur */
+            width: 18px;
+            height: 340px; /* plus longue */
+            margin-left: -9px;
+            background: linear-gradient(180deg, #7ec850 60%, #4e9a2d 100%);
+            border-radius: 12px 12px 40px 40px/12px 12px 220px 220px;
+            z-index: 0; /* SOUS le coeur, les pétales, ET le résultat */
+            box-shadow: 0 6px 18px #b6e6b8, 0 0 0 2px #6fae4a inset;
+            opacity: 1;
+            pointer-events: none;
+            display: block;
+        }
+        #result { 
+            font-size: 2.3em; 
+            margin-top: 40px; /* réduit pour éviter le chevauchement */
+            min-height: 2em; 
+            position: relative; /* repasse en flux normal */
+            left: auto;
+            top: auto;
+            transform: none;
+            z-index: 3; /* plus haut que la tige verte et le coeur */
+            pointer-events: none;
+            width: 100%;
+            text-align: center;
+        }
+        button { 
+            margin-top: 20px; /* réduit pour rapprocher du résultat */
+            padding: 10px 20px; 
+            font-size: 1em; 
+            position: relative; 
+            z-index: 2; 
+        }
+
+        .heart {
+            position: absolute;
+            font-size: 2em;
+            color: #e2557f;
+            opacity: 0.85;
+            pointer-events: none;
+            animation: floatHeart 2.2s ease-out forwards;
+            z-index: 20;
+            filter: drop-shadow(0 2px 6px #e2557f88);
+        }
+        @keyframes floatHeart {
+            0% {
+                opacity: 0.9;
+                transform: scale(0.7) translateY(0);
+            }
+            60% {
+                opacity: 1;
+                transform: scale(1.1) translateY(-60px);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(1.2) translateY(-120px) rotate(-20deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Effeuiller l'amour de ma Pilpoule</h1>
+    <div id="daisy">
+        <div id="center"></div>
+    </div>
+    <div id="result"></div>
+    <button onclick="restartGame()">Recommencer</button>
+     <script>
+        const phrases = [
+            "Je t'aime",
+            "Un peu",
+            "Beaucoup",
+            "Passionnément",
+            "À la folie",
+            "Pas du tout"
+        ];
+        const petalCount = 16;
+        let current = 0;
+        let petals = [];
+
+        function createDaisy() {
+            const daisy = document.getElementById('daisy');
+            daisy.innerHTML = '<div id="center"></div><div id="stem"></div>';
+            petals = [];
+            for (let i = 0; i < petalCount; i++) {
+                const petal = document.createElement('div');
+                petal.className = 'petal';
+                petal.textContent = '';
+                // Calcul de l'angle pour éviter le chevauchement
+                const angle = (360 / petalCount) * i;
+                petal.style.setProperty('--petal-rotate', `rotate(${angle}deg)`);
+                petal.style.setProperty('--petal-translate', `translateY(-120px)`);
+                petal.style.transform = `rotate(${angle}deg) translateY(-120px)`;
+                petal.onclick = () => pickPetal(i);
+                daisy.appendChild(petal);
+                petals.push(petal);
+            }
+            document.getElementById('result').textContent = '';
+            current = 0;
+        }
+
+        function spawnHearts() {
+            // Plus de coeurs que de poules flottent partout sur l'écran
+            const body = document.body;
+            const screenW = window.innerWidth;
+            const screenH = window.innerHeight;
+            // Tableau avec plus de coeurs que de poules
+            const emojis = [
+            '❤','❤','❤','❤','❤','❤','❤','❤','❤','❤', // 10 coeurs
+            '🐥','🐔','🐣' // 3 poules
+            ];
+            for (let i = 0; i < 64; i++) { // Augmente à 64 emojis
+            const el = document.createElement('span');
+            el.className = 'heart';
+            // Mélange coeurs et poules, mais plus de coeurs
+            el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            // Position aléatoire sur l'écran
+            const x = Math.random() * (screenW - 40);
+            const y = Math.random() * (screenH - 80);
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+            el.style.fontSize = `${1.2 + Math.random()}em`;
+            el.style.transform += ` rotate(${Math.random()*60-30}deg)`;
+            el.style.pointerEvents = 'none';
+            el.style.position = 'fixed'; // Important pour couvrir tout l'écran
+            body.appendChild(el);
+            setTimeout(() => el.remove(), 10000);
+            }
+        }
+
+        function pickPetal(index) {
+            if (petals[index].classList.contains('removed') || petals[index].classList.contains('falling')) return;
+            const phrase = phrases[current % phrases.length];
+            petals[index].classList.add('falling');
+            petals[index].style.pointerEvents = 'none';
+            setTimeout(() => {
+                petals[index].classList.add('removed');
+                petals[index].classList.remove('falling');
+            }, 1100);
+
+            current++;
+
+            // Afficher le texte au centre, par dessus le coeur
+            let daisy = document.getElementById('daisy');
+            // Supprimer tout texte flottant précédent
+            let oldText = daisy.querySelector('.center-text');
+            if (oldText) oldText.remove();
+
+            let textSpan = document.createElement('span');
+            textSpan.textContent = phrase;
+            textSpan.style.position = 'absolute';
+            textSpan.style.left = '50%';
+            textSpan.style.top = '50%';
+            textSpan.style.transform = 'translate(-50%, -50%)';
+            textSpan.style.fontSize = '1.2em';
+            textSpan.style.fontWeight = 'bold';
+            textSpan.style.color = '#b89c3a';
+            textSpan.style.pointerEvents = 'none';
+            textSpan.style.transition = 'filter 0.6s, opacity 0.6s';
+            textSpan.style.filter = 'none';
+            textSpan.style.opacity = '1';
+            textSpan.className = 'center-text';
+            textSpan.style.zIndex = '2'; // Plus haut que le coeur
+
+            daisy.appendChild(textSpan);
+
+            setTimeout(() => {
+                textSpan.style.filter = 'blur(8px)';
+                textSpan.style.opacity = '0';
+                setTimeout(() => {
+                    if (textSpan.parentNode) textSpan.parentNode.removeChild(textSpan);
+                }, 600);
+            }, 500);
+
+            if (current === petalCount) {
+                document.getElementById('result').textContent = `Résultat : Je t'aime ${phrase} !`;
+                spawnHearts();
+            }
+        }
+
+        function restartGame() {
+            createDaisy();
+        }
+
+        createDaisy();
+    </script>
+</body>
+</html>
